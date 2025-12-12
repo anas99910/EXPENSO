@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { db, auth } from './firebase';
-import { collection, doc, setDoc, onSnapshot, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, addDoc, updateDoc } from 'firebase/firestore';
 import { signOut, signInAnonymously, onAuthStateChanged, type User } from 'firebase/auth';
 
 // --- CONFIG ---
@@ -143,7 +143,7 @@ function App() {
   // Filter/Sort State
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterCategory] = useState('all'); // setFilterCategory unused
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
   const [searchTerm, setSearchTerm] = useState('');
   const [historyType, setHistoryType] = useState('expenses');
@@ -499,7 +499,7 @@ function App() {
 
 
 
-  const handleDelete = async (id: string, type: 'expenses' | 'income') => {
+  /* const handleDelete = async (id: string, type: 'expenses' | 'income') => {
     // Simple confirm generic for now, ideally custom modal
     if (!appId || !confirm("Are you sure you want to delete this item?")) return;
     try {
@@ -507,7 +507,7 @@ function App() {
     } catch (e) {
       console.error("Delete failed", e);
     }
-  };
+  }; */
 
   const openCatModal = (catKey?: string) => {
     if (catKey && categories[catKey]) {
