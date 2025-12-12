@@ -143,14 +143,14 @@ function App() {
   // Filter/Sort State
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [filterCategory] = useState('all'); // setFilterCategory unused
+  const [filterCategory] = useState('all'); // const [filterCategory, setFilterCategory] = useState('all'); // setFilterCategory unused
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
   const [searchTerm, setSearchTerm] = useState('');
   const [historyType, setHistoryType] = useState('expenses');
   const [filterRecurring, setFilterRecurring] = useState(false);
 
 
-  const [isFabOpen, setIsFabOpen] = useState(false);
+  /* const [isFabOpen, setIsFabOpen] = useState(false); */
 
   // Category Modal State
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
@@ -439,7 +439,7 @@ function App() {
     setIsExpenseModalOpen(true);
   };
 
-  const openAddIncome = () => {
+  /* const openAddIncome = () => {
     setModalMode('add');
     setTransactionType('income');
     setEditingId(null);
@@ -447,7 +447,7 @@ function App() {
     setFormAmount('');
     setFormDate(getTodayString());
     setIsExpenseModalOpen(true);
-  };
+  }; */
 
   const openEditIncome = (income: Income) => {
     setModalMode('edit');
@@ -685,85 +685,95 @@ function App() {
     switch (activeTab) {
       case 'home':
         return (
-          <div className="space-y-6 pb-24">
-            {/* Totals Card */}
-            <div className="glass-card p-6">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-start">
-                <div>
-                  <h2 className="text-sm font-medium text-[--text-tertiary] mb-2">Total This Month</h2>
-                  <div className={`text-4xl md:text-5xl font-bold ${stats.totalExp > 0 ? 'text-red-500' : 'text-[--text-primary]'}`}>
-                    {stats.totalExp > 0 ? '-' : ''} {formatCurrency(stats.totalExp)}
-                  </div>
-                </div>
-                <div className="sm:text-right mt-4 sm:mt-0">
-                  <h2 className="text-sm font-medium text-[--text-tertiary] mb-2">Budget</h2>
-                  <div className="text-2xl font-semibold text-[--text-primary]">{budget > 0 ? formatCurrency(budget) : 'Not Set'}</div>
-                </div>
-              </div>
-              {/* Budget Bar */}
-              {budget > 0 && (
-                <div className="mt-4">
-                  <div className="w-full bg-[--bg-tertiary] rounded-full h-2.5">
-                    <div className="h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.min((stats.totalExp / budget) * 100, 100)}%`, backgroundColor: (stats.totalExp / budget) > 0.9 ? 'var(--accent-danger)' : 'var(--accent-primary)' }}></div>
-                  </div>
-                  <p className={`text-right mt-1 text-sm font-medium ${budget - stats.totalExp >= 0 ? 'text-green-400' : 'text-red-500'}`}>
-                    {budget - stats.totalExp >= 0 ? `${formatCurrency(budget - stats.totalExp)} remaining` : `${formatCurrency(Math.abs(budget - stats.totalExp))} over budget`}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Weekly Summary */}
-            <div className="glass-card p-6">
-              <h2 className="text-lg font-semibold text-[--text-primary] mb-4">This Week's Summary</h2>
-              <div className="space-y-3">
-                <div className="flex justify-between">
+          <div className="space-y-6 pb-24 md:pb-0 md:grid md:grid-cols-12 md:gap-8 md:space-y-0">
+            <div className="md:col-span-7 lg:col-span-8 space-y-6">
+              {/* Totals Card */}
+              <div className="glass-card p-6">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-start">
                   <div>
-                    <h3 className="text-sm font-medium text-[--text-tertiary]">TOTAL SPENT</h3>
-                    <p className="text-2xl font-semibold text-[--text-primary]">{formatCurrency(stats.weeklyTotal)}</p>
+                    <h2 className="text-sm font-medium text-[--text-tertiary] mb-2">Total This Month</h2>
+                    <div className={`text-4xl md:text-5xl font-bold ${stats.totalExp > 0 ? 'text-red-500' : 'text-[--text-primary]'}`}>
+                      {stats.totalExp > 0 ? '-' : ''} {formatCurrency(stats.totalExp)}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <h3 className="text-sm font-medium text-[--text-tertiary]">TODAY</h3>
-                    <p className={`text-2xl font-semibold ${stats.todayTotal > 0 ? 'text-[--accent-primary]' : 'text-[--text-primary]'}`} style={stats.todayTotal > 0 ? { color: 'var(--accent-primary)' } : {}}>{formatCurrency(stats.todayTotal)}</p>
+                  <div className="sm:text-right mt-4 sm:mt-0">
+                    <h2 className="text-sm font-medium text-[--text-tertiary] mb-2">Budget</h2>
+                    <div className="text-2xl font-semibold text-[--text-primary]">{budget > 0 ? formatCurrency(budget) : 'Not Set'}</div>
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-[--text-tertiary]">TOP CATEGORY</h3>
-                  <p className="text-lg font-semibold text-[--text-primary]">{stats.weeklyTotal > 0 ? (categories[stats.weeklyTopCatKey]?.label || '--') : '--'}</p>
-                </div>
+                {/* Budget Bar */}
+                {budget > 0 && (
+                  <div className="mt-4">
+                    <div className="w-full bg-[--bg-tertiary] rounded-full h-2.5">
+                      <div className="h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.min((stats.totalExp / budget) * 100, 100)}%`, backgroundColor: (stats.totalExp / budget) > 0.9 ? 'var(--accent-danger)' : 'var(--accent-primary)' }}></div>
+                    </div>
+                    <p className={`text-right mt-1 text-sm font-medium ${budget - stats.totalExp >= 0 ? 'text-green-400' : 'text-red-500'}`}>
+                      {budget - stats.totalExp >= 0 ? `${formatCurrency(budget - stats.totalExp)} remaining` : `${formatCurrency(Math.abs(budget - stats.totalExp))} over budget`}
+                    </p>
+                  </div>
+                )}
               </div>
-            </div>
 
-            {/* Recent History Preview */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-[--text-primary]">Recent Transactions</h2>
-                <button onClick={() => setActiveTab('history')} className="text-sm text-[--accent-primary]">View All</button>
-              </div>
-              {filteredHistory.slice(0, 5).map((item: any) => {
-                const isExpense = 'category' in item;
-                const cat = isExpense ? (categories[item.category] || DEFAULT_CATEGORIES.other) : null;
-                return (
-                  <div key={item.id} className="glass-card p-4 flex justify-between items-center cursor-pointer" onClick={() => { if (isExpense) openEditExpense(item); else openEditIncome(item); }}>
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-[--bg-tertiary] rounded-xl text-[--text-primary]">
-                        {isExpense ? renderSafeIcon(cat?.icon) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" /></svg>
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-[--text-primary]">{item.title}</p>
-                        <p className="text-xs text-[--text-secondary]">{formatDate(item.date)}</p>
-                      </div>
+              {/* Weekly Summary */}
+              <div className="glass-card p-6">
+                <h2 className="text-lg font-semibold text-[--text-primary] mb-4">This Week's Summary</h2>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium text-[--text-tertiary]">TOTAL SPENT</h3>
+                      <p className="text-2xl font-semibold text-[--text-primary]">{formatCurrency(stats.weeklyTotal)}</p>
                     </div>
-                    <div className={`font-semibold ${isExpense ? 'text-red-500' : 'text-green-400'}`}>
-                      {isExpense ? '-' : '+'} {formatCurrency(item.amount)}
+                    <div className="text-right">
+                      <h3 className="text-sm font-medium text-[--text-tertiary]">TODAY</h3>
+                      <p className={`text-2xl font-semibold ${stats.todayTotal > 0 ? 'text-[--accent-primary]' : 'text-[--text-primary]'}`} style={stats.todayTotal > 0 ? { color: 'var(--accent-primary)' } : {}}>{formatCurrency(stats.todayTotal)}</p>
                     </div>
                   </div>
-                );
-              })}
+                  <div>
+                    <h3 className="text-sm font-medium text-[--text-tertiary]">TOP CATEGORY</h3>
+                    <p className="text-lg font-semibold text-[--text-primary]">{stats.weeklyTotal > 0 ? (categories[stats.weeklyTopCatKey]?.label || '--') : '--'}</p>
+                  </div>
+                </div>
+              </div>
+
+            </div> {/* End Left Column */}
+
+            {/* Desktop: Right Column (Recent History) */}
+            <div className="md:col-span-5 lg:col-span-4 mt-6 md:mt-0">
+              <div className="glass-card p-0 overflow-hidden h-full flex flex-col max-h-[600px]">
+                <div className="p-4 border-b border-[--border-primary] flex justify-between items-center bg-[--bg-tertiary]/50">
+                  <h2 className="text-lg font-semibold text-[--text-primary]">Recent Activity</h2>
+                  <button onClick={() => setActiveTab('history')} className="text-xs text-[--accent-primary] hover:underline">View All</button>
+                </div>
+                <div className="overflow-y-auto p-4 space-y-2 flex-1 custom-scrollbar">
+                  {filteredHistory.slice(0, 8).map((item: any) => {
+                    const isExpense = 'category' in item;
+                    const cat = isExpense ? (categories[item.category] || DEFAULT_CATEGORIES.other) : null;
+                    return (
+                      <div key={item.id} className="flex justify-between items-center p-3 hover:bg-[--bg-tertiary] rounded-lg cursor-pointer transition-colors" onClick={() => { if (isExpense) openEditExpense(item); else openEditIncome(item); }}>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-[--bg-tertiary] rounded-lg text-[--text-primary]">
+                            {isExpense ? <div className="w-5 h-5">{renderSafeIcon(cat?.icon)}</div> : (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" /></svg>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-[--text-primary] text-sm truncate max-w-[120px]">{item.title}</p>
+                            <p className="text-[10px] text-[--text-secondary]">{formatDate(item.date)}</p>
+                          </div>
+                        </div>
+                        <div className={`text-sm font-medium ${isExpense ? 'text-red-400' : 'text-green-400'}`}>
+                          {isExpense ? '-' : '+'} {formatCurrency(item.amount)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {filteredHistory.length === 0 && <p className="text-center text-[--text-tertiary] text-sm py-8">No transactions yet</p>}
+                </div>
+              </div>
             </div>
           </div>
+
+
         );
       case 'stats':
         return (
@@ -951,58 +961,64 @@ function App() {
 
 
   return (
-    <div className="min-h-screen font-sans text-[--text-secondary] max-w-xl mx-auto p-4 relative">
+    <div className="min-h-screen font-sans text-[--text-secondary] relative flex flex-col">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-30 bg-[--bg-primary] pt-2 pb-4 flex justify-between items-center transition-colors duration-300">
+      <header className="sticky top-0 z-40 bg-[--bg-primary]/90 backdrop-blur-md px-6 pt-safe pb-4 border-b border-[--border-primary] flex justify-between items-center transition-all duration-300">
         <div>
-          <h1 className="text-2xl font-bold text-[--text-primary] tracking-tight">Expenso</h1>
-          <select
-            className="bg-transparent text-sm text-[--accent-primary] font-medium outline-none cursor-pointer"
-            value={`${currentYear}-${currentMonth}`}
-            onChange={e => {
-              const [y, m] = e.target.value.split('-').map(Number);
-              setCurrentYear(y);
-              setCurrentMonth(m);
-            }}
-          >
-            {Array.from({ length: 12 }).map((_, i) => {
-              const d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
-              return <option key={i} value={`${d.getFullYear()}-${d.getMonth()}`} className="bg-[--bg-secondary] text-[--text-primary]">{d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</option>;
-            })}
-          </select>
+          <h1 className="text-xl font-bold bg-gradient-to-r from-[--accent-primary] to-emerald-400 bg-clip-text text-transparent">Expenso</h1>
+          {user && (
+            <div className="flex items-center gap-1 mt-0.5">
+              <select
+                className="bg-transparent text-xs text-[--text-secondary] font-medium outline-none cursor-pointer appearance-none hover:text-[--text-primary] transition-colors"
+                value={`${currentYear}-${currentMonth}`}
+                onChange={e => {
+                  const [y, m] = e.target.value.split('-').map(Number);
+                  setCurrentYear(y);
+                  setCurrentMonth(m);
+                }}
+              >
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
+                  return <option key={i} value={`${d.getFullYear()}-${d.getMonth()}`} className="bg-[--bg-secondary] text-[--text-primary]">{d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</option>;
+                })}
+              </select>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[--text-tertiary] pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+              <span className="text-[--text-tertiary] text-xs mx-1">•</span>
+              <span className="text-xs text-[--text-secondary] capitalize">{activeTab}</span>
+            </div>
+          )}
         </div>
-        <div className="w-8 h-8 rounded-full bg-[--bg-tertiary] flex items-center justify-center text-[--accent-primary] font-bold text-xs border border-[--border-primary]" onClick={() => setActiveTab('settings')}>
-          {user?.uid ? user.uid.substring(0, 1).toUpperCase() : 'U'}
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-6 bg-[--bg-tertiary] px-6 py-2 rounded-full border border-[--border-primary]">
+          {['home', 'stats', 'history', 'settings'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab as any)}
+              className={`text-sm font-medium transition-colors hover:text-[--accent-primary] ${activeTab === tab ? 'text-[--accent-primary]' : 'text-[--text-tertiary]'}`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
         </div>
+
+        <button onClick={openAddExpense} className="w-10 h-10 rounded-full bg-[--accent-primary] flex items-center justify-center text-[--accent-primary-text] shadow-lg shadow-[--accent-primary-subtle-bg] hover:scale-105 transition-transform active:scale-95" aria-label="Add Transaction">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+        </button>
       </header>
 
       {/* Main Content */}
-      <main className="min-h-[80vh]">
+      <main className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8">
         {currentTabContent()}
       </main>
 
-      {/* Floating Action Button */}
-      <div className="fixed bottom-24 right-4 z-40 flex flex-col items-end gap-3 pointer-events-none">
-        {/* Mini FABS */}
-        <div className={`flex flex-col gap-3 transition-all duration-300 ${isFabOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
-          <button onClick={() => { setIsFabOpen(false); openAddIncome(); }} className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg">
-            <span className="text-sm font-medium">Income</span>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" /></svg>
-          </button>
-          <button onClick={() => { setIsFabOpen(false); openAddExpense(); }} className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-full shadow-lg">
-            <span className="text-sm font-medium">Expense</span>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
-          </button>
-        </div>
+      {/* Floating Action Button (Mobile Only) */}
+      <button onClick={openAddExpense} className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30 transition-transform active:scale-90 hover:scale-105 md:hidden" style={{ backgroundColor: 'var(--accent-primary)', color: 'var(--accent-primary-text)' }}>
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+      </button>
 
-        {/* Main Trigger */}
-        <button onClick={() => setIsFabOpen(!isFabOpen)} className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-white transition-transform duration-300 pointer-events-auto ${isFabOpen ? 'rotate-45' : ''}`} style={{ backgroundColor: 'var(--accent-primary)' }}>
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-        </button>
-      </div>
-
-      {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[--bg-secondary]/90 backdrop-blur-md border-t border-[--border-primary] pb-safe pt-2 px-6 z-50">
+      {/* Bottom Navigation Bar (Mobile Only) */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-[--bg-secondary]/90 backdrop-blur-md border-t border-[--border-primary] pb-safe pt-2 px-6 z-50 md:hidden">
         <div className="flex justify-between items-center max-w-xl mx-auto h-16">
           <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 ${activeTab === 'home' ? 'text-[--accent-primary]' : 'text-[--text-tertiary]'}`}>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill={activeTab === 'home' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2a1 1 0 01-1-1v-4z" /></svg>
