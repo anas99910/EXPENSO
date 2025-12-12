@@ -1,0 +1,269 @@
+@import "tailwindcss";
+
+/* Base styles - NEW Dark/Green Theme */
+:root {
+    --bg-primary: #121212;
+    /* Very dark grey background */
+    --bg-secondary: #1e1e1e;
+    /* Dark panel background */
+    --bg-tertiary: #2a2a2a;
+    /* Lighter panel (inputs) */
+    --bg-overlay: rgba(0, 0, 0, 0.7);
+    --text-primary: #FFFFFF;
+    --text-secondary: #b3b3b3;
+    /* Light grey */
+    --text-tertiary: #808080;
+    /* Medium grey */
+    --border-primary: #303030;
+    /* Subtle border */
+    --border-focus: #1DB954;
+    /* Green accent */
+    --scroll-track: #121212;
+    --scroll-thumb: #303030;
+    --scroll-thumb-hover: #454545;
+
+    /* --- ACCENT COLORS --- */
+    --accent-primary: #1DB954;
+    /* Bright Green */
+    --accent-primary-hover: #1ED760;
+    --accent-primary-text: #FFFFFF;
+    --accent-primary-subtle-bg: rgba(29, 185, 84, 0.15);
+    --accent-primary-subtle-text: #1DB954;
+
+    --accent-secondary: #2a2a2a;
+    /* Grey buttons */
+    --accent-secondary-hover: #333333;
+    --accent-secondary-text: #FFFFFF;
+
+    --accent-danger: #E53E3E;
+    /* Red */
+    --accent-danger-hover: #FC8181;
+    --accent-danger-subtle-bg: rgba(229, 62, 62, 0.15);
+    --accent-danger-subtle-text: #E53E3E;
+}
+
+/* Light Mode */
+.light {
+    --bg-primary: #F3F4F6;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #F9FAFB;
+    --bg-overlay: rgba(0, 0, 0, 0.4);
+    --text-primary: #1F2937;
+    --text-secondary: #4B5563;
+    --text-tertiary: #9CA3AF;
+    --border-primary: #E5E7EB;
+    --border-focus: #1DB954;
+    --scroll-track: #F3F4F6;
+    --scroll-thumb: #D1D5DB;
+    --scroll-thumb-hover: #9CA3AF;
+
+    /* --- ACCENT COLORS --- */
+    --accent-primary: #1DB954;
+    --accent-primary-hover: #1ED760;
+    --accent-primary-text: #FFFFFF;
+    --accent-primary-subtle-bg: rgba(29, 185, 84, 0.15);
+    --accent-primary-subtle-text: #1DB954;
+
+    --accent-secondary: #E5E7EB;
+    --accent-secondary-hover: #D1D5DB;
+    --accent-secondary-text: #1F2937;
+
+    --accent-danger: #E53E3E;
+    --accent-danger-hover: #FC8181;
+    --accent-danger-subtle-bg: rgba(229, 62, 62, 0.15);
+    --accent-danger-subtle-text: #E53E3E;
+}
+
+.light body {
+    background-color: var(--bg-primary);
+    background-attachment: fixed;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-primary);
+    /* Solid dark background */
+    background-attachment: fixed;
+    min-height: 100vh;
+    color: var(--text-secondary);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Solid Card Style (No glass) */
+.glass-card {
+    background: var(--bg-secondary);
+    /* REMOVED backdrop-filter */
+    border: 1px solid var(--border-primary);
+    border-radius: 1.25rem;
+    /* 20px */
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.1);
+    /* Softer shadow */
+    transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+
+/* Solid Input Style */
+.glass-input {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+    font-size: 16px;
+    /* Prevent iOS zoom */
+}
+
+.glass-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.glass-input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    /* Green focus */
+    box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.3);
+    /* Green shadow */
+}
+
+/* Touch targets */
+button {
+    touch-action: manipulation;
+}
+
+.light .glass-input:focus {
+    box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.3);
+    /* Green shadow */
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--scroll-track);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scroll-thumb);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scroll-thumb-hover);
+}
+
+/* Date picker icon */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    /* Invert(1) for dark, Invert(0.2) for light */
+    filter: invert(1);
+    cursor: pointer;
+}
+
+.light input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.2);
+}
+
+/* Modal animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-fade-in {
+    animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-slide-in-up {
+    animation: slideInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Bar chart animation */
+.chart-bar {
+    transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Budget progress bar */
+#budget-progress-bar {
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pie chart */
+#pie-chart {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #F9C851 0deg 90deg, #E67E22 90deg 180deg, #3498DB 180deg 270deg, #2ECC71 270deg 360deg);
+    transition: background 0.5s;
+}
+
+/* Utility for hiding */
+.hidden {
+    display: none !important;
+}
+
+/* Toast Notification */
+#toast {
+    position: fixed;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    border-radius: 9999px;
+    font-weight: 500;
+    transition: bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100;
+}
+
+#toast.show {
+    bottom: 30px;
+}
+
+#toast.success {
+    background-color: var(--accent-primary);
+    /* Green */
+    color: var(--accent-primary-text);
+    /* White */
+}
+
+#toast.error {
+    background-color: var(--accent-danger);
+    /* Red */
+    color: var(--accent-primary-text);
+    /* White */
+}
+
+/* New style for scrollable history */
+.history-container {
+    max-height: 60vh;
+    /* 60% of the viewport height */
+    overflow-y: auto;
+    padding-right: 6px;
+    /* Space for scrollbar */
+}
+
+/* --- New styles to hide bar chart scrollbar --- */
+#bar-chart-container {
+    /* Hide scrollbar on Firefox */
+    scrollbar-width: none;
+}
+
+#bar-chart-container::-webkit-scrollbar {
+    /* Hide scrollbar on Webkit (Chrome, Safari) */
+    display: none;
+}

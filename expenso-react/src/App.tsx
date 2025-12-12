@@ -1,0 +1,767 @@
+import { useState, useEffect, useMemo } from 'react';
+import { db, auth } from './firebase';
+import { collection, doc, setDoc, onSnapshot, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { signOut, signInAnonymously, onAuthStateChanged, type User } from 'firebase/auth';
+
+// --- CONFIG ---
+
+const USERS = [
+  { username: "anas9910", password: "24177", appId: "expenso-e317f" },
+  { username: "user2", password: "22222", appId: "expenso-test-mode" },
+  { username: "user3", password: "3333", appId: "expenso-user-333" },
+  { username: "user4", password: "4444", appId: "expenso-user-444" },
+  { username: "user5", password: "5555", appId: "expenso-user-555" }
+];
+
+
+
+const DEFAULT_CATEGORIES: Record<string, any> = {
+  food: { label: 'Food', color: '#F59E0B', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-4m0 0V5a2 2 0 012-2h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2zm0 0h18M5 7h14M5 11h7" /></svg> },
+  water: { label: 'Water', color: '#3498DB', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.472 15.03L3 12.56C3 12.23 3.23 12 3.56 12H5.44C5.77 12 6 12.23 6 12.56L8.53 15.03C8.72 15.22 9 15.09 9 14.82V3.5C9 3.22 8.78 3 8.5 3H3.5C3.22 3 3 3.22 3 3.5V14.82C3 15.09 3.28 15.22 3.47 15.03L5.472 15.03zM18.53 15.03L21 12.56C21 12.23 20.77 12 20.44 12H18.56C18.23 12 18 12.23 18 12.56L15.47 15.03C15.28 15.22 15 15.09 15 14.82V3.5C15 3.22 15.22 3 15.5 3H20.5C20.78 3 21 3.22 21 3.5V14.82C21 15.09 20.72 15.22 20.53 15.03L18.53 15.03zM12 10.5C12.83 10.5 13.5 9.83 13.5 9C13.5 8.17 12.83 7.5 12 7.5S10.5 8.17 10.5 9C10.5 9.83 11.17 10.5 12 10.5zM12 21C15.31 21 18 18.31 18 15V12H6V15C6 18.31 8.69 21 12 21z" /></svg> },
+  electricity: { label: 'Electricity', color: '#F9C851', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> },
+  rent: { label: 'Rent', color: '#EF4444', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2a1 1 0 01-1-1v-4z" /></svg> },
+  transport: { label: 'Transport', color: '#8B5CF6', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg> },
+  vecuil_expense: { label: 'Vecuil Expense', color: '#34495E', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg> },
+  gazolin: { label: 'Gazolin', color: '#E67E22', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5.636 18.364a9 9 0 1112.728 0M12 21v-7" /></svg> },
+  internet: { label: 'Internet', color: '#6366F1', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11.99a9.002 9.002 0 1017.89 0A9.002 9.002 0 003.054 12z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 3.53a9.003 9.003 0 010 16.94 9.003 9.003 0 010-16.94zM3.53 12.002a9.003 9.003 0 0116.94 0 9.003 9.003 0 01-16.94 0z" /></svg> },
+  other: { label: 'Other', color: '#EC4899', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 5.523-4.477 10-10 10S1 17.523 1 12S5.477 2 11 2s10 4.477 10 10z" /></svg> }
+};
+
+// --- HELPERS ---
+
+const renderSafeIcon = (icon: any) => {
+  if (typeof icon === 'string' && icon.includes('<svg')) {
+    return <span dangerouslySetInnerHTML={{ __html: icon }} />;
+  }
+  return icon;
+};
+
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('fr-MA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount) + ' DH';
+};
+
+const formatDate = (dateString: string) => {
+  // dateString is "YYYY-MM-DD"
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+};
+
+const getTodayString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = (today.getMonth() + 1).toString().padStart(2, '0');
+  const day = today.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// --- INTERFACES ---
+
+interface Expense {
+  id?: string;
+  title: string;
+  amount: number;
+  category: string;
+  date: string;
+  tags: string[];
+}
+
+interface Income {
+  id?: string;
+  title: string;
+  amount: number;
+  date: string;
+}
+
+interface Category {
+  label: string;
+  budget?: number | null;
+  color?: string;
+  icon?: any; // JSX Element
+}
+
+// --- COMPONENTS ---
+
+// Password Gate
+const PasswordGate = ({ onLogin }: { onLogin: (appId: string) => void }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const matchedUser = USERS.find(u => u.username === username && u.password === password);
+    if (matchedUser) {
+      onLogin(matchedUser.appId);
+    } else {
+      setError(true);
+      setPassword('');
+    }
+  };
+
+  return (
+    <div id="password-gate" className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[--bg-primary]">
+      <div className="glass-card w-full max-w-sm p-6">
+        <h3 className="text-2xl font-semibold text-[--text-primary] mb-6 text-center">Expenso</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[--text-secondary] mb-2">Username</label>
+            <input type="text" value={username} onChange={e => { setUsername(e.target.value); setError(false); }} className="glass-input w-full rounded-lg p-3" required autoComplete="username" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[--text-secondary] mb-2">Password</label>
+            <div className="relative">
+              <input type={showPassword ? "text" : "password"} value={password} onChange={e => { setPassword(e.target.value); setError(false); }} className="glass-input w-full rounded-lg p-3 pr-10" required maxLength={5} autoComplete="current-password" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-[--text-secondary] hover:text-[--text-primary]">
+                {showPassword ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .23-.62.5-1.22.814-1.78m3.95 3.95A3 3 0 018.02 14.02l-1.07-1.07m5.92-5.92A3 3 0 0115.98 9.98l1.07 1.07m-5.92 5.92l-1.07-1.07m5.92-5.92l1.07 1.07M3 3l18 18" /></svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-.07.207-.141.414-.214.618m-2.06 3.095A9.002 9.002 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .07-.207-.141-.414-.214-.618m2.06-3.095l-2.06-3.095m16 0l-2.06 3.095" /></svg>
+                )}
+              </button>
+            </div>
+            {error && <p className="text-red-400 text-sm mt-2">Incorrect username or password.</p>}
+          </div>
+          <div className="flex justify-end pt-4">
+            <button type="submit" className="w-full font-medium py-3 px-5 rounded-full transition-colors duration-200" style={{ backgroundColor: 'var(--accent-primary)', color: 'var(--accent-primary-text)' }}>Unlock</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+function App() {
+  const [appId, setAppId] = useState<string | null>(() => sessionStorage.getItem('expenso_app_id'));
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [income, setIncome] = useState<Income[]>([]);
+  const [categories, setCategories] = useState<Record<string, Category>>({});
+  const [theme, setTheme] = useState('dark');
+  const [budget, setBudget] = useState(0);
+
+  // Filter/Sort State
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [historyType, setHistoryType] = useState('expenses');
+
+
+  const [filterRecurring, setFilterRecurring] = useState(false);
+  const [sortType, setSortType] = useState('date-desc');
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, (u) => setUser(u));
+  }, []);
+
+  useEffect(() => {
+    if (!appId) return;
+    sessionStorage.setItem('expenso_app_id', appId);
+
+    if (!user) {
+      signInAnonymously(auth).catch((error) => console.error("Auth error:", error));
+      return;
+    }
+
+    // Listeners
+    const basePath = `artifacts/${appId}/public/data`;
+
+    const unsubExp = onSnapshot(collection(db, basePath, 'expenses'), (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Expense));
+      setExpenses(data);
+    });
+
+    const unsubInc = onSnapshot(collection(db, basePath, 'income'), (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as Income));
+      setIncome(data);
+    });
+
+    const unsubSettings = onSnapshot(doc(db, basePath, 'settings', 'userSettings'), (snap) => {
+      if (snap.exists()) {
+        const s = snap.data();
+        if (s.theme) setTheme(s.theme);
+        if (s.budget) setBudget(s.budget);
+        if (s.categories) setCategories(s.categories);
+        else setCategories(DEFAULT_CATEGORIES as any); // Fallback
+      } else {
+        setCategories(DEFAULT_CATEGORIES as any);
+        setTheme('dark');
+      }
+    });
+
+    return () => { unsubExp(); unsubInc(); unsubSettings(); };
+  }, [appId, user]);
+
+  // Apply Theme
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+  }, [theme]);
+
+
+
+  // --- COMPUTED ---
+
+  const periodExpenses = useMemo(() => {
+    return expenses.filter(e => {
+      const d = new Date(e.date);
+      return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+    });
+  }, [expenses, currentYear, currentMonth]);
+
+  const periodIncome = useMemo(() => {
+    return income.filter(i => {
+      const d = new Date(i.date);
+      return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+    });
+  }, [income, currentYear, currentMonth]);
+
+
+
+  const stats = useMemo(() => {
+    const totalExp = periodExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalInc = periodIncome.reduce((sum, i) => sum + i.amount, 0);
+    const savings = totalInc - totalExp;
+
+    // Category breakdown
+    const catTotals: Record<string, number> = {};
+    periodExpenses.forEach(e => {
+      const k = e.category || 'other';
+      catTotals[k] = (catTotals[k] || 0) + e.amount;
+    });
+
+    const topCatKey = Object.keys(catTotals).reduce((a, b) => catTotals[a] > catTotals[b] ? a : b, 'other');
+    const highestExp = periodExpenses.reduce((max, e) => e.amount > max.amount ? e : max, { amount: 0, title: '--' } as Expense);
+
+
+
+    // Calculate Weekly Stats
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 (Sun) to 6 (Sat)
+    // Adjust to Monday start
+    const diffToMon = (dayOfWeek + 6) % 7;
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - diffToMon);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const startOfWeekStr = startOfWeek.toISOString().split('T')[0];
+    const endOfWeekStr = endOfWeek.toISOString().split('T')[0];
+
+    const weeklyExpenses = expenses.filter(e => e.date >= startOfWeekStr && e.date <= endOfWeekStr);
+    const weeklyTotal = weeklyExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+    const todayStr = getTodayString();
+    const todayTotal = expenses.filter(e => e.date === todayStr).reduce((sum, e) => sum + e.amount, 0);
+
+    // Weekly Top Category
+    const weeklyCatTotals: Record<string, number> = {};
+    weeklyExpenses.forEach(e => {
+      e.category = e.category || 'other';
+      weeklyCatTotals[e.category] = (weeklyCatTotals[e.category] || 0) + e.amount;
+    });
+    const weeklyTopCatKey = Object.keys(weeklyCatTotals).reduce((a, b) => weeklyCatTotals[a] > weeklyCatTotals[b] ? a : b, 'other');
+
+    let historyData = [...expenses, ...income];
+    // Sort initially by date desc to have a base order
+    historyData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return { totalExp, totalInc, savings, catTotals, topCatKey, highestExp, history: historyData, weeklyTotal, todayTotal, weeklyTopCatKey };
+  }, [periodExpenses, periodIncome, expenses, income]);
+
+  const filteredHistory = useMemo(() => {
+    let data = [...stats.history];
+
+    // 1. Filter by Type
+    if (historyType === 'expenses') {
+      data = data.filter(item => 'category' in item);
+    } else if (historyType === 'income') {
+      data = data.filter(item => !('category' in item));
+    }
+
+    // 2. Filter by Category
+    if (filterCategory !== 'all') {
+      data = data.filter(item => 'category' in item && (item as Expense).category === filterCategory);
+    }
+
+    // 3. Search
+    if (searchTerm) {
+      const lower = searchTerm.toLowerCase();
+      data = data.filter(item => item.title.toLowerCase().includes(lower) || ((item as Expense).tags?.some(t => t.toLowerCase().includes(lower))));
+    }
+
+    // 4. Recurring Filter
+    if (filterRecurring) {
+      data = data.filter(item => 'tags' in item && (item as Expense).tags?.includes('recurring'));
+    }
+
+    // 5. Sorting
+    data.sort((a, b) => {
+      if (sortType === 'date-desc') return new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (sortType === 'date-asc') return new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (sortType === 'amount-desc') return b.amount - a.amount;
+      if (sortType === 'amount-asc') return a.amount - b.amount;
+      return 0;
+    });
+
+    return data;
+  }, [stats.history, historyType, filterCategory, searchTerm, filterRecurring, sortType]);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    sessionStorage.removeItem('expenso_app_id');
+    setAppId(null);
+  };
+
+
+  // --- MODAL STATE ---
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [transactionType, setTransactionType] = useState<'expense' | 'income'>('expense');
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Form State
+  const [formTitle, setFormTitle] = useState('');
+  const [formAmount, setFormAmount] = useState('');
+  const [formCategory, setFormCategory] = useState<string>('other');
+  const [formDate, setFormDate] = useState(getTodayString());
+  // const [formTags, setFormTags] = useState(''); // TODO: Implement tags
+
+  const openAddExpense = () => {
+    setModalMode('add');
+    setTransactionType('expense');
+    setEditingId(null);
+    setFormTitle('');
+    setFormAmount('');
+    setFormCategory('other');
+    setFormDate(getTodayString());
+    setIsExpenseModalOpen(true);
+  };
+
+  const openEditExpense = (expense: Expense) => {
+    setModalMode('edit');
+    setTransactionType('expense');
+    setEditingId(expense.id!);
+    setFormTitle(expense.title);
+    setFormAmount(expense.amount.toString());
+    setFormCategory(expense.category);
+    setFormDate(expense.date);
+    setIsExpenseModalOpen(true);
+  };
+
+  const openAddIncome = () => {
+    setModalMode('add');
+    setTransactionType('income');
+    setEditingId(null);
+    setFormTitle('');
+    setFormAmount('');
+    setFormDate(getTodayString());
+    setIsExpenseModalOpen(true);
+  };
+
+  const openEditIncome = (income: Income) => {
+    setModalMode('edit');
+    setTransactionType('income');
+    setEditingId(income.id!);
+    setFormTitle(income.title);
+    setFormAmount(income.amount.toString());
+    setFormDate(income.date);
+    setIsExpenseModalOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!appId) return;
+
+    const amount = parseFloat(formAmount);
+    if (isNaN(amount) || amount <= 0) return;
+
+    const baseData = {
+      title: formTitle,
+      amount,
+      date: formDate,
+    };
+
+    const data = transactionType === 'expense' ? { ...baseData, category: formCategory, tags: [] } : baseData;
+    const collectionName = transactionType === 'expense' ? 'expenses' : 'income';
+
+    try {
+      if (modalMode === 'add') {
+        await addDoc(collection(db, `artifacts/${appId}/public/data/${collectionName}`), data);
+      } else if (modalMode === 'edit' && editingId) {
+        await updateDoc(doc(db, `artifacts/${appId}/public/data/${collectionName}`, editingId), data);
+      }
+      setIsExpenseModalOpen(false);
+    } catch (error) {
+      console.error("Error saving transaction:", error);
+    }
+  };
+
+  // --- HANDLERS CONT. ---
+
+  const handleThemeToggle = async () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    if (appId) {
+      await setDoc(doc(db, `artifacts/${appId}/public/data/settings/userSettings`), { theme: newTheme }, { merge: true });
+    }
+  };
+
+
+
+  const handleDelete = async (id: string, type: 'expenses' | 'income') => {
+    // Simple confirm generic for now, ideally custom modal
+    if (!appId || !confirm("Are you sure you want to delete this item?")) return;
+    try {
+      await deleteDoc(doc(db, `artifacts/${appId}/public/data/${type}`, id));
+    } catch (e) {
+      console.error("Delete failed", e);
+    }
+  };
+
+  if (!appId) {
+    return <PasswordGate onLogin={setAppId} />;
+  }
+
+  const renderModal = () => {
+    if (!isExpenseModalOpen) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsExpenseModalOpen(false)}></div>
+        <div className="glass-card z-10 w-full max-w-sm p-6 relative bg-[--bg-secondary]">
+          <h3 className="text-2xl font-semibold text-[--text-primary] mb-6">
+            {modalMode === 'add' ? 'Add' : 'Edit'} {transactionType === 'expense' ? 'Expense' : 'Income'}
+          </h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-[--text-secondary] mb-2">Amount</label>
+              <input type="number" step="0.01" value={formAmount} onChange={e => setFormAmount(e.target.value)} className="glass-input w-full rounded-lg p-3 text-2xl" placeholder="0.00" autoFocus required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[--text-secondary] mb-2">Title</label>
+              <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} className="glass-input w-full rounded-lg p-3" placeholder="What is this for?" required />
+            </div>
+
+            {transactionType === 'expense' && (
+              <div>
+                <label className="block text-sm font-medium text-[--text-secondary] mb-2">Category</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {Object.keys(DEFAULT_CATEGORIES).map(catKey => {
+                    const isActive = formCategory === catKey;
+                    return (
+                      <button key={catKey} type="button" onClick={() => setFormCategory(catKey)} className={`p-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-colors ${isActive ? 'bg-[--bg-tertiary] ring-2 ring-[--accent-primary]' : 'hover:bg-[--bg-tertiary]'}`}>
+                        <div className={isActive ? 'text-[--accent-primary]' : 'text-[--text-secondary]'}>
+                          {renderSafeIcon(DEFAULT_CATEGORIES[catKey].icon)}
+                        </div>
+                        <span className="text-[10px] text-[--text-secondary] truncate w-full text-center">{DEFAULT_CATEGORIES[catKey].label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[--text-secondary] mb-2">Date</label>
+                <input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} className="glass-input w-full rounded-lg p-3" required />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <button type="button" onClick={() => setIsExpenseModalOpen(false)} className="px-5 py-2 rounded-full text-[--text-secondary] hover:bg-[--bg-tertiary]">Cancel</button>
+              <button type="submit" className="px-5 py-2 rounded-full font-medium" style={{ backgroundColor: 'var(--accent-primary)', color: 'var(--accent-primary-text)' }}>Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  // --- MAIN RENDER ---
+  return (
+    <div className="min-h-screen font-sans text-[--text-secondary] max-w-7xl mx-auto p-4 md:p-8">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 gap-4">
+        <div className="flex-1 flex items-center gap-4 w-full md:w-auto">
+          <h1 className="text-3xl md:text-4xl font-bold text-[--text-primary] tracking-tight">Expenso</h1>
+          <select
+            className="glass-input text-sm rounded-lg py-2 px-3"
+            value={`${currentYear}-${currentMonth}`}
+            onChange={e => {
+              const [y, m] = e.target.value.split('-').map(Number);
+              setCurrentYear(y);
+              setCurrentMonth(m);
+            }}
+          >
+            {Array.from({ length: 12 }).map((_, i) => {
+              const d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
+              return <option key={i} value={`${d.getFullYear()}-${d.getMonth()}`}>{d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</option>;
+            })}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Theme Toggle */}
+          <button onClick={handleThemeToggle} className="p-2 rounded-full glass-input" title="Toggle Theme">
+            {theme === 'light' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[--text-primary]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[--text-primary]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            )}
+          </button>
+
+          <button onClick={() => alert("Settings coming soon!")} className="p-2 rounded-full glass-input" title="Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[--text-primary]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </button>
+
+          <button onClick={() => alert("Calculator coming soon!")} className="p-2 rounded-full glass-input" title="Calculator">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[--text-primary]" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M4 2a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2H4zm1 4a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1H6a1 1 0 01-1-1V6zm3 0a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1H9a1 1 0 01-1-1V6zm3 0a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1h-1a1 1 0 01-1-1V6zM5 10a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1H6a1 1 0 01-1-1v-1zm3 0a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1H9a1 1 0 01-1-1v-1zm3 0a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1zm-6 4a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1H6a1 1 0 01-1-1v-1zm3 0a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1H9a1 1 0 01-1-1v-1zm3 0a1 1 0 011-1h1a1 1 0 011 1v1a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1z" />
+            </svg>
+          </button>
+
+          <button onClick={handleLogout} className="p-2 rounded-full glass-input" title="Logout">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[--text-primary]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+          </button>
+
+          {/* Add Buttons */}
+          <button onClick={openAddIncome} className="p-2 rounded-full flex items-center gap-2 transition-all duration-200" style={{ backgroundColor: 'var(--accent-success)', color: 'white' }} title="Add Income">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" /></svg>
+          </button>
+          <button onClick={openAddExpense} className="p-2 rounded-full flex items-center gap-2 transition-all duration-200" style={{ backgroundColor: 'var(--accent-primary)', color: 'var(--accent-primary-text)' }} title="Add Expense">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
+          </button>
+        </div>
+      </header>
+
+      {/* Dashboard Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+        {/* Main Logic Section */}
+        <div className="lg:col-span-2 space-y-6 md:space-y-8">
+          {/* Totals Card */}
+          <div className="glass-card p-6">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-start">
+              <div>
+                <h2 className="text-sm font-medium text-[--text-tertiary] mb-2">Total This Month</h2>
+                <div className={`text-4xl md:text-5xl font-bold ${stats.totalExp > 0 ? 'text-red-500' : 'text-[--text-primary]'}`}>
+                  {stats.totalExp > 0 ? '-' : ''} {formatCurrency(stats.totalExp)}
+                </div>
+              </div>
+              <div className="sm:text-right mt-4 sm:mt-0">
+                <h2 className="text-sm font-medium text-[--text-tertiary] mb-2">Budget</h2>
+                <div className="text-2xl font-semibold text-[--text-primary]">{budget > 0 ? formatCurrency(budget) : 'Not Set'}</div>
+              </div>
+            </div>
+            {/* Budget Bar */}
+            {budget > 0 && (
+              <div className="mt-4">
+                <div className="w-full bg-[--bg-tertiary] rounded-full h-2.5">
+                  <div className="h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.min((stats.totalExp / budget) * 100, 100)}%`, backgroundColor: (stats.totalExp / budget) > 0.9 ? 'var(--accent-danger)' : 'var(--accent-primary)' }}></div>
+                </div>
+                <p className={`text-right mt-1 text-sm font-medium ${budget - stats.totalExp >= 0 ? 'text-green-400' : 'text-red-500'}`}>
+                  {budget - stats.totalExp >= 0 ? `${formatCurrency(budget - stats.totalExp)} remaining` : `${formatCurrency(Math.abs(budget - stats.totalExp))} over budget`}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Chart Section */}
+          <div className="glass-card p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-[--text-primary]">Monthly Breakdown</h3>
+              <div className="flex gap-2">
+                <button onClick={() => setChartType('bar')} className={`p-2 rounded-lg glass-input transition-colors ${chartType === 'bar' ? 'bg-[--bg-tertiary] text-[--accent-primary]' : 'text-[--text-secondary]'}`} style={chartType === 'bar' ? { backgroundColor: 'var(--accent-primary-subtle-bg)', color: 'var(--accent-primary)' } : {}}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                </button>
+                <button onClick={() => setChartType('pie')} className={`p-2 rounded-lg glass-input transition-colors ${chartType === 'pie' ? 'bg-[--bg-tertiary] text-[--accent-primary]' : 'text-[--text-secondary]'}`} style={chartType === 'pie' ? { backgroundColor: 'var(--accent-primary-subtle-bg)', color: 'var(--accent-primary)' } : {}}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path strokeLinecap="round" strokeLinejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
+                </button>
+              </div>
+            </div>
+            <div className={`w-full p-2 sm:p-4 bg-[--bg-tertiary] rounded-xl overflow-x-auto ${chartType === 'pie' ? 'flex flex-col items-center justify-center' : 'h-48 flex items-end gap-2'}`} id="chart-container">
+              {Object.keys(stats.catTotals).length > 0 ? (
+                chartType === 'bar' ? (
+                  Object.keys(stats.catTotals).map(key => {
+                    const total = stats.catTotals[key];
+                    const max = Math.max(...Object.values(stats.catTotals));
+                    const pct = (total / max) * 100;
+                    const cat = categories[key] || DEFAULT_CATEGORIES.other;
+                    return (
+                      <div key={key} className="flex flex-col items-center justify-end h-full" style={{ minWidth: 40 }}>
+                        <div className="w-1/2 md:w-3/5 rounded-t-md transition-all duration-500" style={{ height: `${pct}%`, backgroundColor: cat.color || '#808080' }} title={`${cat.label}: ${formatCurrency(total)}`}></div>
+                        <span className="text-xs text-[--text-tertiary] mt-1 truncate w-full text-center">{cat.label}</span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  // Pie Chart Logic
+                  <div className="flex items-center gap-8">
+                    <div className="relative w-32 h-32 rounded-full" style={{
+                      background: `conic-gradient(${Object.keys(stats.catTotals).reduce<{ current: number, parts: string[] }>((acc, key) => {
+                        const val = stats.catTotals[key];
+                        const total = stats.totalExp || 1;
+                        const deg = (val / total) * 360;
+                        const cat = categories[key] || DEFAULT_CATEGORIES.other;
+                        acc.parts.push(`${cat.color} ${acc.current}deg ${acc.current + deg}deg`);
+                        acc.current += deg;
+                        return acc;
+                      }, { current: 0, parts: [] }).parts.join(', ')
+                        })`
+                    }}></div>
+                    <div className="space-y-1">
+                      {Object.keys(stats.catTotals).map(key => {
+                        const cat = categories[key] || DEFAULT_CATEGORIES.other;
+                        return (
+                          <div key={key} className="flex items-center gap-2 text-xs">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }}></div>
+                            <span className="text-[--text-secondary]">{cat.label}</span>
+                            <span className="font-semibold text-[--text-primary]">{formatCurrency(stats.catTotals[key])}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              ) : <div className="w-full h-full flex items-center justify-center text-[--text-tertiary] p-4">No data</div>}
+            </div>
+          </div>
+
+          {/* History List */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-2xl font-semibold text-[--text-primary]">History</h2>
+                <select value={historyType} onChange={e => setHistoryType(e.target.value)} className="glass-input text-sm rounded-lg py-1 px-2">
+                  <option value="expenses">Expenses</option>
+                  <option value="income">Income</option>
+                  <option value="all">All</option>
+                </select>
+                <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="glass-input text-sm rounded-lg py-1 px-2">
+                  <option value="all">All Categories</option>
+                  {Object.keys(DEFAULT_CATEGORIES).map(k => (
+                    <option key={k} value={k}>{DEFAULT_CATEGORIES[k].label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex gap-2 w-full sm:w-auto">
+                <input type="text" placeholder="Search or #tag..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="glass-input w-full rounded-lg py-2 px-3 text-sm" />
+                <button className="p-2 rounded-lg glass-input text-tertiary hover:text-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}> <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /> </svg>
+                </button>
+                <button className="p-2 rounded-lg glass-input text-tertiary hover:text-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}> <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /> </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <select value={sortType} onChange={e => setSortType(e.target.value)} className="glass-input text-sm rounded-lg py-1 px-2 mb-2 w-auto">
+                <option value="date-desc">Sort by Date (Newest)</option>
+                <option value="date-asc">Sort by Date (Oldest)</option>
+                <option value="amount-desc">Sort by Amount (High)</option>
+                <option value="amount-asc">Sort by Amount (Low)</option>
+              </select>
+              <button onClick={() => setFilterRecurring(!filterRecurring)} className={`p-1 rounded-lg glass-input ml-2 ${filterRecurring ? 'text-green-500' : 'text-gray-500'}`} title="Recurring">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2.582a10.003 10.003 0 01-15.356-1.06M19.582 15H19v5a10.003 10.003 0 01-16.06-2.582" /></svg>
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto pr-2 space-y-4">
+              {filteredHistory.map((item: any) => {
+                const isExpense = 'category' in item;
+                const cat = isExpense ? (categories[item.category] || DEFAULT_CATEGORIES.other) : null;
+                return (
+                  <div key={item.id} className="glass-card p-4 hover:border-[--border-focus] transition-colors group cursor-pointer" onClick={() => { if (isExpense) openEditExpense(item); else openEditIncome(item); }}>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-[--bg-tertiary] rounded-xl text-[--text-primary]">
+                          {isExpense ? renderSafeIcon(cat?.icon) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" /></svg>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-[--text-primary]">{item.title}</p>
+                          <p className="text-sm text-[--text-secondary]">{formatDate(item.date)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className={`font-semibold text-lg ${isExpense ? 'text-red-500' : 'text-green-400'}`}>
+                          {isExpense ? '-' : '+'} {formatCurrency(item.amount)}
+                        </div>
+                        <button onClick={() => handleDelete(item.id!, isExpense ? 'expenses' : 'income')} className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:text-red-300 transition-opacity" title="Delete">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {filteredHistory.length === 0 && (
+                <div className="glass-card p-6 text-center text-[--text-tertiary]">No transactions found.</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column (Insights) */}
+        <div className="space-y-6 md:space-y-8">
+          <div className="glass-card p-6">
+            <h2 className="text-lg font-semibold text-[--text-primary] mb-4">Monthly Insights</h2>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-[--text-tertiary]">MONTHLY SAVINGS</h3>
+                <p className={`text-xl font-semibold ${stats.savings >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(stats.savings)}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-[--text-tertiary]">TOP CATEGORY</h3>
+                <p className="text-xl font-semibold text-[--text-primary]">{categories[stats.topCatKey]?.label || '--'}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-[--text-tertiary]">HIGHEST EXPENSE</h3>
+                <p className="text-xl font-semibold text-[--text-primary]">{formatCurrency(stats.highestExp.amount)}</p>
+                <p className="text-sm text-[--text-secondary] truncate">{stats.highestExp.title}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Weekly Summary */}
+          <div className="glass-card p-6">
+            <h2 className="text-lg font-semibold text-[--text-primary] mb-4">This Week's Summary</h2>
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-sm font-medium text-[--text-tertiary]">TOTAL SPENT (Mon-Sun)</h3>
+                <p className="text-2xl font-semibold text-[--text-primary]">{formatCurrency(stats.weeklyTotal)}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-[--text-tertiary]">TODAY SPENT</h3>
+                <p className={`text-2xl font-semibold ${stats.todayTotal > 0 ? 'text-[--accent-primary]' : 'text-[--text-primary]'}`} style={stats.todayTotal > 0 ? { color: 'var(--accent-primary)' } : {}}>{formatCurrency(stats.todayTotal)}</p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-[--text-tertiary]">TOP CATEGORY (This Week)</h3>
+                <p className="text-lg font-semibold text-[--text-primary]">{stats.weeklyTotal > 0 ? (categories[stats.weeklyTopCatKey]?.label || '--') : '--'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-card p-6">
+            <button onClick={() => alert("Category management coming soon!")} className="w-full text-center font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+              style={{ backgroundColor: 'var(--accent-primary-subtle-bg)', color: 'var(--accent-primary-subtle-text)' }}>
+              Manage Categories
+            </button>
+          </div>
+
+        </div>
+      </div>
+      {renderModal()}
+    </div>
+  );
+}
+
+export default App;
