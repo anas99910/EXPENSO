@@ -1,287 +1,144 @@
 @import "tailwindcss";
 
-/* Base styles - NEW Dark/Green Theme */
+/* --- GLASSMORPHISM DESIGN SYSTEM --- */
+
 :root {
-    --bg-primary: #121212;
-    /* Very dark grey background */
-    --bg-secondary: #1e1e1e;
-    /* Dark panel background */
-    --bg-tertiary: #2a2a2a;
-    /* Lighter panel (inputs) */
-    --bg-overlay: rgba(0, 0, 0, 0.7);
-    --text-primary: #FFFFFF;
-    --text-secondary: #b3b3b3;
-    /* Light grey */
-    --text-tertiary: #808080;
-    /* Medium grey */
-    --border-primary: #303030;
-    /* Subtle border */
-    --border-focus: #1DB954;
-    /* Green accent */
-    --scroll-track: #121212;
-    --scroll-thumb: #303030;
-    --scroll-thumb-hover: #454545;
+  /* BACKGROUNDS */
+  --bg-primary: #000000; /* Deepest black */
+  --bg-gradient-start: #0f172a; /* Slate 900 */
+  --bg-gradient-end: #020617; /* Slate 950 */
+  
+  /* GLASS SURFACES */
+  --glass-surface: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --backdrop-blur: 20px;
 
-    /* --- ACCENT COLORS --- */
-    --accent-primary: #1DB954;
-    /* Bright Green */
-    --accent-primary-hover: #1ED760;
-    --accent-primary-text: #FFFFFF;
-    --accent-primary-subtle-bg: rgba(29, 185, 84, 0.15);
-    --accent-primary-subtle-text: #1DB954;
+  /* TEXT */
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-tertiary: rgba(255, 255, 255, 0.4);
 
-    --accent-secondary: #2a2a2a;
-    /* Grey buttons */
-    --accent-secondary-hover: #333333;
-    --accent-secondary-text: #FFFFFF;
-
-    --accent-danger: #E53E3E;
-    /* Red */
-    --accent-danger-hover: #FC8181;
-    --accent-danger-subtle-bg: rgba(229, 62, 62, 0.15);
-    --accent-danger-subtle-text: #E53E3E;
+  /* ACCENTS */
+  --accent-primary: #22c55e; /* Green-500 */
+  --accent-glow: rgba(34, 197, 94, 0.4);
+  --accent-danger: #ef4444; /* Red-500 */
+  
+  /* BORDERS & RADIUS */
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
 }
 
-/* Light Mode */
+/* Light Mode Overrides (Optional - keeping dark optimized for now) */
 .light {
-    --bg-primary: #F3F4F6;
-    --bg-secondary: #FFFFFF;
-    --bg-tertiary: #F9FAFB;
-    --bg-overlay: rgba(0, 0, 0, 0.4);
-    --text-primary: #1F2937;
-    --text-secondary: #4B5563;
-    --text-tertiary: #9CA3AF;
-    --border-primary: #E5E7EB;
-    --border-focus: #1DB954;
-    --scroll-track: #F3F4F6;
-    --scroll-thumb: #D1D5DB;
-    --scroll-thumb-hover: #9CA3AF;
-
-    /* --- ACCENT COLORS --- */
-    --accent-primary: #1DB954;
-    --accent-primary-hover: #1ED760;
-    --accent-primary-text: #FFFFFF;
-    --accent-primary-subtle-bg: rgba(29, 185, 84, 0.15);
-    --accent-primary-subtle-text: #1DB954;
-
-    --accent-secondary: #E5E7EB;
-    --accent-secondary-hover: #D1D5DB;
-    --accent-secondary-text: #1F2937;
-
-    --accent-danger: #E53E3E;
-    --accent-danger-hover: #FC8181;
-    --accent-danger-subtle-bg: rgba(229, 62, 62, 0.15);
-    --accent-danger-subtle-text: #E53E3E;
-}
-
-.light body {
-    background-color: var(--bg-primary);
-    background-attachment: fixed;
+  --bg-primary: #f8fafc;
+  --bg-gradient-start: #e2e8f0;
+  --bg-gradient-end: #f1f5f9;
+  --glass-surface: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+  --text-primary: #0f172a;
+  --text-secondary: rgba(15, 23, 42, 0.7);
 }
 
 body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--bg-primary);
-    /* Solid dark background */
-    background-attachment: fixed;
-    min-height: 100vh;
-    color: var(--text-secondary);
-    transition: background-color 0.3s, color 0.3s;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-primary);
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(34, 197, 94, 0.08), transparent 25%), 
+    radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.08), transparent 25%),
+    linear-gradient(to bottom right, var(--bg-gradient-start), var(--bg-gradient-end));
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100vh;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Solid Card Style (No glass) */
+/* --- UTILITY CLASSES --- */
+
+/* The Glass Card */
 .glass-card {
-    background: var(--bg-secondary);
-    /* REMOVED backdrop-filter */
-    border: 1px solid var(--border-primary);
-    border-radius: 1.25rem;
-    /* 20px */
-    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.1);
-    /* Softer shadow */
-    transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+  background: var(--glass-surface);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--radius-lg);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Solid Input Style */
+.glass-card:hover {
+  border-color: var(--glass-highlight);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Glass Inputs */
 .glass-input {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-primary);
-    color: var(--text-primary);
-    transition: background-color 0.3s, border-color 0.3s, color 0.3s;
-    font-size: 16px;
-    /* Prevent iOS zoom */
-}
-
-.glass-input::placeholder {
-    color: var(--text-tertiary);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  transition: all 0.2s ease;
 }
 
 .glass-input:focus {
-    outline: none;
-    border-color: var(--border-focus);
-    /* Green focus */
-    box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.3);
-    /* Green shadow */
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+  background: rgba(0, 0, 0, 0.3);
 }
 
-/* Touch targets */
+/* Buttons */
 button {
-    touch-action: manipulation;
+  touch-action: manipulation;
 }
 
-.light .glass-input:focus {
-    box-shadow: 0 0 0 2px rgba(29, 185, 84, 0.3);
-    /* Green shadow */
+/* Typography Polish */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
 }
 
-/* Custom scrollbar */
+/* Scrollbar */
 ::-webkit-scrollbar {
-    width: 6px;
+  width: 8px;
+  height: 8px;
 }
-
 ::-webkit-scrollbar-track {
-    background: var(--scroll-track);
+  background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-    background: var(--scroll-thumb);
-    border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--scroll-thumb-hover);
+  background: rgba(255, 255, 255, 0.2);
 }
 
-/* Date picker icon */
-input[type="date"]::-webkit-calendar-picker-indicator {
-    /* Invert(1) for dark, Invert(0.2) for light */
-    filter: invert(1);
-    cursor: pointer;
+/* Chart Animations */
+.chart-bar { transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+#budget-progress-bar { transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* Utilities */
+.hidden { display: none !important; }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pt-safe { padding-top: env(safe-area-inset-top); }
+
+/* Modal Animation */
+@keyframes modalPop {
+  0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-content {
+  animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.light input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.2);
-}
-
-/* Modal animations */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px) scale(0.95);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-.modal-fade-in {
-    animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.modal-slide-in-up {
-    animation: slideInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Bar chart animation */
-.chart-bar {
-    transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Budget progress bar */
-#budget-progress-bar {
-    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Pie chart */
-#pie-chart {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    background: conic-gradient(from 0deg, #F9C851 0deg 90deg, #E67E22 90deg 180deg, #3498DB 180deg 270deg, #2ECC71 270deg 360deg);
-    transition: background 0.5s;
-}
-
-/* Utility for hiding */
-.hidden {
-    display: none !important;
-}
-
-/* Toast Notification */
-#toast {
-    position: fixed;
-    bottom: -100px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 12px 24px;
-    border-radius: 9999px;
-    font-weight: 500;
-    transition: bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 100;
-}
-
-#toast.show {
-    bottom: 30px;
-}
-
-#toast.success {
-    background-color: var(--accent-primary);
-    /* Green */
-    color: var(--accent-primary-text);
-    /* White */
-}
-
-#toast.error {
-    background-color: var(--accent-danger);
-    /* Red */
-    color: var(--accent-primary-text);
-    /* White */
-}
-
-/* New style for scrollable history */
+/* History Scroll Container */
 .history-container {
-    max-height: 60vh;
-    /* 60% of the viewport height */
-    overflow-y: auto;
-    padding-right: 6px;
-    /* Space for scrollbar */
-}
-
-/* --- New styles to hide bar chart scrollbar --- */
-#bar-chart-container {
-    /* Hide scrollbar on Firefox */
-    scrollbar-width: none;
-}
-
-#bar-chart-container::-webkit-scrollbar {
-    /* Hide scrollbar on Webkit (Chrome, Safari) */
-    display: none;
-}
-
-/* --- MOBILE UX UTILITIES --- */
-.pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
-}
-
-.pt-safe {
-    padding-top: env(safe-area-inset-top);
-}
-
-.no-scrollbar::-webkit-scrollbar {
-    display: none;
-}
-
-.no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 4px;
 }

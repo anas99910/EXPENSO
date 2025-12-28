@@ -40,11 +40,7 @@ const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('fr-MA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount) + ' DH';
 };
 
-const formatDate = (dateString: string) => {
-  // dateString is "YYYY-MM-DD"
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-};
+
 
 const getTodayString = () => {
   const today = new Date();
@@ -169,8 +165,8 @@ const CalculatorModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
   ];
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[--bg-secondary] p-6 rounded-2xl w-80 shadow-2xl border border-[--border-primary]" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md" onClick={onClose}>
+      <div className="glass-card p-6 w-80 shadow-2xl border border-[--glass-border] bg-[--glass-surface]" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-[--text-primary]">Calculator</h3>
           <button onClick={onClose} className="text-[--text-tertiary] hover:text-[--text-primary]">
@@ -788,18 +784,18 @@ function App() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
               {/* Left Column: Main Stats & Charts */}
-              <div className="md:col-span-8 space-y-6">
+              <div className="md:col-span-8 flex flex-col gap-6">
                 {/* Total Card */}
-                <div className="glass-card p-6">
+                <div className="glass-card p-6 flex-1 flex flex-col justify-center">
                   <div className="flex flex-col sm:flex-row justify-between sm:items-start">
                     <div>
-                      <h2 className="text-sm font-medium text-[--text-tertiary] mb-2">Total This Month</h2>
-                      <div className={`text-4xl md:text-5xl font-bold ${stats.totalExp > 0 ? 'text-red-500' : 'text-[--text-primary]'}`}>
+                      <h2 className="text-sm font-medium text-[--text-tertiary] mb-2 uppercase tracking-wide">Total This Month</h2>
+                      <div className={`text-4xl md:text-5xl font-bold bg-gradient-to-r ${stats.totalExp > 0 ? 'from-red-400 to-red-600' : 'from-[--text-primary] to-gray-400'} bg-clip-text text-transparent`}>
                         {stats.totalExp > 0 ? '-' : ''} {formatCurrency(stats.totalExp)}
                       </div>
                     </div>
                     <div className="sm:text-right mt-4 sm:mt-0">
-                      <h2 className="text-sm font-medium text-[--text-tertiary] mb-2">Budget</h2>
+                      <h2 className="text-sm font-medium text-[--text-tertiary] mb-2 uppercase tracking-wide">Budget</h2>
                       <div className="text-2xl font-semibold text-[--text-primary]">{budget > 0 ? formatCurrency(budget) : 'Not Set'}</div>
                       <p className={`text-sm font-medium mt-1 ${budget - stats.totalExp >= 0 ? 'text-green-400' : 'text-red-500'}`}>
                         {budget > 0 && (budget - stats.totalExp >= 0 ? `${formatCurrency(budget - stats.totalExp)} remaining` : `${formatCurrency(Math.abs(budget - stats.totalExp))} over`)}
@@ -808,29 +804,29 @@ function App() {
                   </div>
                   {/* Budget Bar */}
                   {budget > 0 && (
-                    <div className="mt-4">
-                      <div className="w-full bg-[--bg-tertiary] rounded-full h-2.5">
-                        <div className="h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.min((stats.totalExp / budget) * 100, 100)}%`, backgroundColor: (stats.totalExp / budget) > 0.9 ? 'var(--accent-danger)' : 'var(--accent-primary)' }}></div>
+                    <div className="mt-6">
+                      <div className="w-full bg-[--glass-border] rounded-full h-3">
+                        <div className="h-3 rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(0,0,0,0.2)]" style={{ width: `${Math.min((stats.totalExp / budget) * 100, 100)}%`, backgroundColor: (stats.totalExp / budget) > 0.9 ? 'var(--accent-danger)' : 'var(--accent-primary)' }}></div>
                       </div>
                     </div>
                   )}
                 </div>
 
                 {/* Monthly Breakdown Chart */}
-                <div className="glass-card p-6">
-                  <div className="flex justify-between items-center mb-4">
+                <div className="glass-card p-6 flex-1 flex flex-col">
+                  <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-semibold text-[--text-primary]">Monthly Breakdown</h3>
                     <div className="flex gap-2">
                       {/* Chart Toggles */}
-                      <button onClick={() => setChartType('bar')} className={`p-2 rounded-lg glass-input transition-colors ${chartType === 'bar' ? 'bg-[--bg-tertiary] text-[--accent-primary]' : 'text-[--text-secondary]'}`} style={chartType === 'bar' ? { backgroundColor: 'var(--accent-primary-subtle-bg)', color: 'var(--accent-primary)' } : {}}>
+                      <button onClick={() => setChartType('bar')} className={`p-2 rounded-lg transition-colors border ${chartType === 'bar' ? 'bg-[--glass-highlight] border-[--accent-primary] text-[--accent-primary]' : 'border-transparent text-[--text-secondary] hover:bg-[--glass-surface]'}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                       </button>
-                      <button onClick={() => setChartType('pie')} className={`p-2 rounded-lg glass-input transition-colors ${chartType === 'pie' ? 'bg-[--bg-tertiary] text-[--accent-primary]' : 'text-[--text-secondary]'}`} style={chartType === 'pie' ? { backgroundColor: 'var(--accent-primary-subtle-bg)', color: 'var(--accent-primary)' } : {}}>
+                      <button onClick={() => setChartType('pie')} className={`p-2 rounded-lg transition-colors border ${chartType === 'pie' ? 'bg-[--glass-highlight] border-[--accent-primary] text-[--accent-primary]' : 'border-transparent text-[--text-secondary] hover:bg-[--glass-surface]'}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path strokeLinecap="round" strokeLinejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
                       </button>
                     </div>
                   </div>
-                  <div className={`w-full p-2 sm:p-4 bg-[--bg-tertiary] rounded-xl overflow-x-auto ${chartType === 'pie' ? 'flex flex-col items-center justify-center' : 'h-48 flex items-end gap-2'}`} id="chart-container">
+                  <div className={`w-full p-2 sm:p-4 rounded-xl overflow-x-auto flex-1 ${chartType === 'pie' ? 'flex flex-col items-center justify-center' : 'h-48 flex items-end gap-2'}`} id="chart-container">
                     {Object.keys(stats.catTotals).length > 0 ? (
                       chartType === 'bar' ? (
                         Object.keys(stats.catTotals).map(key => {
@@ -840,14 +836,14 @@ function App() {
                           const cat = categories[key] || DEFAULT_CATEGORIES.other;
                           return (
                             <div key={key} className="flex flex-col items-center justify-end h-full" style={{ minWidth: 40 }}>
-                              <div className="w-1/2 md:w-3/5 rounded-t-md transition-all duration-500" style={{ height: `${pct}%`, backgroundColor: cat.color || '#808080' }} title={`${cat.label}: ${formatCurrency(total)}`}></div>
-                              <span className="text-xs text-[--text-tertiary] mt-1 truncate w-full text-center">{cat.label}</span>
+                              <div className="w-1/2 md:w-3/5 rounded-t-md transition-all duration-500 chart-bar hover:opacity-80" style={{ height: `${pct}%`, backgroundColor: cat.color || '#808080' }} title={`${cat.label}: ${formatCurrency(total)}`}></div>
+                              <span className="text-xs text-[--text-tertiary] mt-2 truncate w-full text-center">{cat.label}</span>
                             </div>
                           );
                         })
                       ) : (
-                        <div className="flex items-center gap-8">
-                          <div className="relative w-32 h-32 rounded-full" style={{
+                        <div className="flex flex-col md:flex-row items-center gap-8">
+                          <div className="relative w-40 h-40 rounded-full shadow-lg" style={{
                             background: `conic-gradient(${Object.keys(stats.catTotals).reduce<{ current: number, parts: string[] }>((acc, key) => {
                               const val = stats.catTotals[key];
                               const total = stats.totalExp || 1;
@@ -1075,27 +1071,31 @@ function App() {
       case 'history':
         return (
           <div className="space-y-4 pb-24 h-full flex flex-col">
-            <div className="sticky top-[72px] z-20 bg-[--bg-primary] pb-4 space-y-3">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <input type="text" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="glass-input w-full rounded-full py-2 pl-10 pr-4 text-sm" />
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-3 top-3 text-[--text-tertiary]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <div className="sticky top-16 z-20 backdrop-blur-xl bg-black/20 p-4 -mx-4 mb-4 rounded-b-2xl border-b border-[--glass-border] shadow-lg">
+              <div className="flex gap-3 mb-3">
+                <div className="relative flex-1 group">
+                  <input type="text" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="glass-input w-full rounded-2xl py-3 pl-11 pr-4 text-sm transition-all focus:scale-[1.02]" />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 absolute left-3.5 top-3.5 text-[--text-tertiary] group-focus-within:text-[--accent-primary] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                 </div>
-                <select value={historyType} onChange={e => setHistoryType(e.target.value)} className="glass-input text-sm rounded-full py-2 px-3">
-                  <option value="all">All</option>
-                  <option value="expenses">Exp</option>
-                  <option value="income">Inc</option>
+                <select value={historyType} onChange={e => setHistoryType(e.target.value)} className="glass-input text-sm rounded-2xl py-2 px-4 cursor-pointer hover:bg-white/10">
+                  <option value="all" className="bg-[#121212]">All</option>
+                  <option value="expenses" className="bg-[#121212]">Exp</option>
+                  <option value="income" className="bg-[#121212]">Inc</option>
                 </select>
               </div>
-              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                <button onClick={() => setFilterRecurring(!filterRecurring)} className={`px-3 py-1 rounded-full text-xs whitespace-nowrap border ${filterRecurring ? 'bg-[--accent-primary-subtle-bg] border-[--accent-primary] text-[--accent-primary]' : 'border-[--border-primary] text-[--text-tertiary]'}`}>
-                  Recurring
+              <div className="flex items-center justify-between">
+                <button onClick={() => setFilterRecurring(!filterRecurring)} className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${filterRecurring ? 'bg-[--accent-primary] text-white shadow-lg shadow-green-500/20' : 'bg-[--glass-surface] text-[--text-secondary] border border-[--glass-border] hover:bg-[--glass-highlight]'}`}>
+                  Recurring Only
                 </button>
-                <select value={sortType} onChange={e => setSortType(e.target.value)} className="glass-input text-xs rounded-full py-1 px-2 border-none">
-                  <option value="date-desc">Newest</option>
-                  <option value="date-asc">Oldest</option>
-                  <option value="amount-desc">Amount High</option>
-                </select>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-wider text-[--text-tertiary] font-semibold">Sort by</span>
+                  <select value={sortType} onChange={e => setSortType(e.target.value)} className="bg-transparent text-xs text-[--text-secondary] focus:text-[--text-primary] outline-none cursor-pointer">
+                    <option value="date-desc" className="bg-[#121212]">Recent</option>
+                    <option value="date-asc" className="bg-[#121212]">Oldest</option>
+                    <option value="amount-desc" className="bg-[#121212]">Highest</option>
+                    <option value="amount-asc" className="bg-[#121212]">Lowest</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -1186,7 +1186,8 @@ function App() {
   return (
     <div className="min-h-screen font-sans text-[--text-secondary] relative flex flex-col">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-40 bg-[--bg-primary]/90 backdrop-blur-md px-6 pt-safe pb-4 border-b border-[--border-primary] flex justify-between items-center transition-all duration-300">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-40 bg-[--glass-surface] backdrop-blur-xl px-6 pt-safe pb-4 border-b border-[--glass-border] flex justify-between items-center transition-all duration-300 shadow-sm">
         <div onClick={() => setActiveTab('home')} className="cursor-pointer group">
           <h1 className="text-xl font-bold bg-gradient-to-r from-[--accent-primary] to-emerald-400 bg-clip-text text-transparent">Expenso</h1>
           {user && (
@@ -1276,7 +1277,8 @@ function App() {
       </button>
 
       {/* Bottom Navigation Bar (Mobile Only) */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[--bg-secondary]/90 backdrop-blur-md border-t border-[--border-primary] pb-safe pt-2 px-6 z-50 md:hidden">
+      {/* Bottom Navigation Bar (Mobile Only) */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-[--glass-surface] backdrop-blur-xl border-t border-[--glass-border] pb-safe pt-2 px-6 z-50 md:hidden">
         <div className="flex justify-between items-center max-w-xl mx-auto h-16">
           <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 ${activeTab === 'home' ? 'text-[--accent-primary]' : 'text-[--text-tertiary]'}`}>
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill={activeTab === 'home' ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2a1 1 0 01-1-1v-4z" /></svg>
