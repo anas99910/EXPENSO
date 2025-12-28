@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { db, auth } from './firebase';
-import { collection, doc, setDoc, onSnapshot, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { signOut, signInAnonymously, onAuthStateChanged, type User } from 'firebase/auth';
 
 // --- CONFIG ---
@@ -131,6 +131,69 @@ const PasswordGate = ({ onLogin }: { onLogin: (appId: string) => void }) => {
   );
 };
 
+// Calculator Modal
+const CalculatorModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const [display, setDisplay] = useState('0');
+  const [equation, setEquation] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleBtn = (val: string) => {
+    if (val === 'C') {
+      setDisplay('0');
+      setEquation('');
+    } else if (val === '=') {
+      try {
+        // Safe evaluation for basic math
+        const result = new Function('return ' + display)();
+        setDisplay(String(result));
+        setEquation(display);
+      } catch {
+        setDisplay('Error');
+        setEquation('');
+      }
+    } else {
+      if (display === '0' && !['/', '*', '-', '+', '.'].includes(val)) {
+        setDisplay(val);
+      } else {
+        setDisplay(prev => prev + val);
+      }
+    }
+  };
+
+  const buttons = [
+    '7', '8', '9', '/',
+    '4', '5', '6', '*',
+    '1', '2', '3', '-',
+    '0', '.', '=', '+'
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[--bg-secondary] p-6 rounded-2xl w-80 shadow-2xl border border-[--border-primary]" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-[--text-primary]">Calculator</h3>
+          <button onClick={onClose} className="text-[--text-tertiary] hover:text-[--text-primary]">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div className="bg-[--bg-tertiary] p-4 rounded-xl mb-4 text-right">
+          <div className="text-xs text-[--text-tertiary] h-4">{equation}</div>
+          <div className="text-2xl font-bold text-[--text-primary] truncate">{display}</div>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          <button onClick={() => handleBtn('C')} className="col-span-4 p-3 rounded-xl bg-red-500/10 text-red-500 font-bold hover:bg-red-500/20 mb-2">Clear</button>
+          {buttons.map(btn => (
+            <button key={btn} onClick={() => handleBtn(btn)} className={`p-3 rounded-xl font-semibold transition-colors ${['/', '*', '-', '+', '='].includes(btn) ? 'bg-[--accent-primary] text-[--accent-primary-text]' : 'bg-[--bg-tertiary] text-[--text-primary] hover:bg-[--bg-primary]'}`}>
+              {btn}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function App() {
   const [appId, setAppId] = useState<string | null>(() => sessionStorage.getItem('expenso_app_id'));
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -158,6 +221,11 @@ function App() {
   const [catFormColor, setCatFormColor] = useState('#1DB954');
   const [catFormIcon, setCatFormIcon] = useState<any>('');
   const [editingCatKey, setEditingCatKey] = useState<string | null>(null);
+
+  // Header State & Handlers
+  const [isCalcOpen, setIsCalcOpen] = useState(false);
+
+
 
   // --- CONSTANTS ---
   const PRESET_ICONS = [
@@ -401,6 +469,36 @@ function App() {
     await signOut(auth);
     sessionStorage.removeItem('expenso_app_id');
     setAppId(null);
+  };
+
+  const handleWipeData = async () => {
+    if (!appId || !window.confirm("DANGER: This will permanently delete ALL expenses and income data. This action cannot be undone. Are you sure?")) return;
+
+    const doubleCheck = prompt("Type 'DELETE' to confirm:");
+    if (doubleCheck !== 'DELETE') return;
+
+    try {
+      // Delete Expenses
+      const expPromises = expenses.map(e => {
+        if (e.id) return deleteDoc(doc(db, `artifacts/${appId}/public/data/expenses`, e.id));
+        return Promise.resolve();
+      });
+
+      // Delete Income
+      const incPromises = income.map(i => {
+        if (i.id) return deleteDoc(doc(db, `artifacts/${appId}/public/data/income`, i.id));
+        return Promise.resolve();
+      });
+
+      await Promise.all([...expPromises, ...incPromises]);
+
+      setExpenses([]);
+      setIncome([]);
+      alert("All data has been wiped.");
+    } catch (err) {
+      console.error("Wipe failed", err);
+      alert("Failed to wipe data. See console.");
+    }
   };
 
 
@@ -685,92 +783,211 @@ function App() {
     switch (activeTab) {
       case 'home':
         return (
-          <div className="space-y-6 pb-24 md:pb-0 md:grid md:grid-cols-12 md:gap-8 md:space-y-0">
-            <div className="md:col-span-7 lg:col-span-8 space-y-6">
-              {/* Totals Card */}
-              <div className="glass-card p-6">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-start">
-                  <div>
-                    <h2 className="text-sm font-medium text-[--text-tertiary] mb-2">Total This Month</h2>
-                    <div className={`text-4xl md:text-5xl font-bold ${stats.totalExp > 0 ? 'text-red-500' : 'text-[--text-primary]'}`}>
-                      {stats.totalExp > 0 ? '-' : ''} {formatCurrency(stats.totalExp)}
-                    </div>
-                  </div>
-                  <div className="sm:text-right mt-4 sm:mt-0">
-                    <h2 className="text-sm font-medium text-[--text-tertiary] mb-2">Budget</h2>
-                    <div className="text-2xl font-semibold text-[--text-primary]">{budget > 0 ? formatCurrency(budget) : 'Not Set'}</div>
-                  </div>
-                </div>
-                {/* Budget Bar */}
-                {budget > 0 && (
-                  <div className="mt-4">
-                    <div className="w-full bg-[--bg-tertiary] rounded-full h-2.5">
-                      <div className="h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.min((stats.totalExp / budget) * 100, 100)}%`, backgroundColor: (stats.totalExp / budget) > 0.9 ? 'var(--accent-danger)' : 'var(--accent-primary)' }}></div>
-                    </div>
-                    <p className={`text-right mt-1 text-sm font-medium ${budget - stats.totalExp >= 0 ? 'text-green-400' : 'text-red-500'}`}>
-                      {budget - stats.totalExp >= 0 ? `${formatCurrency(budget - stats.totalExp)} remaining` : `${formatCurrency(Math.abs(budget - stats.totalExp))} over budget`}
-                    </p>
-                  </div>
-                )}
-              </div>
+          <div className="space-y-6 pb-24 md:pb-0">
+            {/* Top Section: Statistics & Summaries */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
-              {/* Weekly Summary */}
-              <div className="glass-card p-6">
-                <h2 className="text-lg font-semibold text-[--text-primary] mb-4">This Week's Summary</h2>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
+              {/* Left Column: Main Stats & Charts */}
+              <div className="md:col-span-8 space-y-6">
+                {/* Total Card */}
+                <div className="glass-card p-6">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-start">
                     <div>
-                      <h3 className="text-sm font-medium text-[--text-tertiary]">TOTAL SPENT</h3>
-                      <p className="text-2xl font-semibold text-[--text-primary]">{formatCurrency(stats.weeklyTotal)}</p>
+                      <h2 className="text-sm font-medium text-[--text-tertiary] mb-2">Total This Month</h2>
+                      <div className={`text-4xl md:text-5xl font-bold ${stats.totalExp > 0 ? 'text-red-500' : 'text-[--text-primary]'}`}>
+                        {stats.totalExp > 0 ? '-' : ''} {formatCurrency(stats.totalExp)}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <h3 className="text-sm font-medium text-[--text-tertiary]">TODAY</h3>
-                      <p className={`text-2xl font-semibold ${stats.todayTotal > 0 ? 'text-[--accent-primary]' : 'text-[--text-primary]'}`} style={stats.todayTotal > 0 ? { color: 'var(--accent-primary)' } : {}}>{formatCurrency(stats.todayTotal)}</p>
+                    <div className="sm:text-right mt-4 sm:mt-0">
+                      <h2 className="text-sm font-medium text-[--text-tertiary] mb-2">Budget</h2>
+                      <div className="text-2xl font-semibold text-[--text-primary]">{budget > 0 ? formatCurrency(budget) : 'Not Set'}</div>
+                      <p className={`text-sm font-medium mt-1 ${budget - stats.totalExp >= 0 ? 'text-green-400' : 'text-red-500'}`}>
+                        {budget > 0 && (budget - stats.totalExp >= 0 ? `${formatCurrency(budget - stats.totalExp)} remaining` : `${formatCurrency(Math.abs(budget - stats.totalExp))} over`)}
+                      </p>
                     </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-[--text-tertiary]">TOP CATEGORY</h3>
-                    <p className="text-lg font-semibold text-[--text-primary]">{stats.weeklyTotal > 0 ? (categories[stats.weeklyTopCatKey]?.label || '--') : '--'}</p>
+                  {/* Budget Bar */}
+                  {budget > 0 && (
+                    <div className="mt-4">
+                      <div className="w-full bg-[--bg-tertiary] rounded-full h-2.5">
+                        <div className="h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.min((stats.totalExp / budget) * 100, 100)}%`, backgroundColor: (stats.totalExp / budget) > 0.9 ? 'var(--accent-danger)' : 'var(--accent-primary)' }}></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Monthly Breakdown Chart */}
+                <div className="glass-card p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold text-[--text-primary]">Monthly Breakdown</h3>
+                    <div className="flex gap-2">
+                      {/* Chart Toggles */}
+                      <button onClick={() => setChartType('bar')} className={`p-2 rounded-lg glass-input transition-colors ${chartType === 'bar' ? 'bg-[--bg-tertiary] text-[--accent-primary]' : 'text-[--text-secondary]'}`} style={chartType === 'bar' ? { backgroundColor: 'var(--accent-primary-subtle-bg)', color: 'var(--accent-primary)' } : {}}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                      </button>
+                      <button onClick={() => setChartType('pie')} className={`p-2 rounded-lg glass-input transition-colors ${chartType === 'pie' ? 'bg-[--bg-tertiary] text-[--accent-primary]' : 'text-[--text-secondary]'}`} style={chartType === 'pie' ? { backgroundColor: 'var(--accent-primary-subtle-bg)', color: 'var(--accent-primary)' } : {}}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path strokeLinecap="round" strokeLinejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div className={`w-full p-2 sm:p-4 bg-[--bg-tertiary] rounded-xl overflow-x-auto ${chartType === 'pie' ? 'flex flex-col items-center justify-center' : 'h-48 flex items-end gap-2'}`} id="chart-container">
+                    {Object.keys(stats.catTotals).length > 0 ? (
+                      chartType === 'bar' ? (
+                        Object.keys(stats.catTotals).map(key => {
+                          const total = stats.catTotals[key];
+                          const max = Math.max(...Object.values(stats.catTotals));
+                          const pct = (total / max) * 100;
+                          const cat = categories[key] || DEFAULT_CATEGORIES.other;
+                          return (
+                            <div key={key} className="flex flex-col items-center justify-end h-full" style={{ minWidth: 40 }}>
+                              <div className="w-1/2 md:w-3/5 rounded-t-md transition-all duration-500" style={{ height: `${pct}%`, backgroundColor: cat.color || '#808080' }} title={`${cat.label}: ${formatCurrency(total)}`}></div>
+                              <span className="text-xs text-[--text-tertiary] mt-1 truncate w-full text-center">{cat.label}</span>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="flex items-center gap-8">
+                          <div className="relative w-32 h-32 rounded-full" style={{
+                            background: `conic-gradient(${Object.keys(stats.catTotals).reduce<{ current: number, parts: string[] }>((acc, key) => {
+                              const val = stats.catTotals[key];
+                              const total = stats.totalExp || 1;
+                              const deg = (val / total) * 360;
+                              const cat = categories[key] || DEFAULT_CATEGORIES.other;
+                              acc.parts.push(`${cat.color} ${acc.current}deg ${acc.current + deg}deg`);
+                              acc.current += deg;
+                              return acc;
+                            }, { current: 0, parts: [] }).parts.join(', ')
+                              })`
+                          }}></div>
+                          <div className="space-y-1">
+                            {Object.keys(stats.catTotals).map(key => {
+                              const cat = categories[key] || DEFAULT_CATEGORIES.other;
+                              return (
+                                <div key={key} className="flex items-center gap-2 text-xs">
+                                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }}></div>
+                                  <span className="text-[--text-secondary]">{cat.label}</span>
+                                  <span className="font-semibold text-[--text-primary]">{formatCurrency(stats.catTotals[key])}</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    ) : <div className="w-full h-full flex items-center justify-center text-[--text-tertiary] p-4">No data</div>}
                   </div>
                 </div>
               </div>
 
-            </div> {/* End Left Column */}
+              {/* Right Column: Insights & Summaries */}
+              <div className="md:col-span-4 space-y-6">
 
-            {/* Desktop: Right Column (Recent History) */}
-            <div className="md:col-span-5 lg:col-span-4 mt-6 md:mt-0">
-              <div className="glass-card p-0 overflow-hidden h-full flex flex-col max-h-[600px]">
-                <div className="p-4 border-b border-[--border-primary] flex justify-between items-center bg-[--bg-tertiary]/50">
-                  <h2 className="text-lg font-semibold text-[--text-primary]">Recent Activity</h2>
-                  <button onClick={() => setActiveTab('history')} className="text-xs text-[--accent-primary] hover:underline">View All</button>
-                </div>
-                <div className="overflow-y-auto p-4 space-y-2 flex-1 custom-scrollbar">
-                  {filteredHistory.slice(0, 8).map((item: any) => {
-                    const isExpense = 'category' in item;
-                    const cat = isExpense ? (categories[item.category] || DEFAULT_CATEGORIES.other) : null;
-                    return (
-                      <div key={item.id} className="flex justify-between items-center p-3 hover:bg-[--bg-tertiary] rounded-lg cursor-pointer transition-colors" onClick={() => { if (isExpense) openEditExpense(item); else openEditIncome(item); }}>
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-[--bg-tertiary] rounded-lg text-[--text-primary]">
-                            {isExpense ? <div className="w-5 h-5">{renderSafeIcon(cat?.icon)}</div> : (
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" /></svg>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium text-[--text-primary] text-sm truncate max-w-[120px]">{item.title}</p>
-                            <p className="text-[10px] text-[--text-secondary]">{formatDate(item.date)}</p>
-                          </div>
-                        </div>
-                        <div className={`text-sm font-medium ${isExpense ? 'text-red-400' : 'text-green-400'}`}>
-                          {isExpense ? '-' : '+'} {formatCurrency(item.amount)}
-                        </div>
+                {/* Monthly Insights */}
+                <div className="glass-card p-6">
+                  <h2 className="text-lg font-semibold text-[--text-primary] mb-4">Monthly Insights</h2>
+                  <div className="space-y-4">
+                    <div className="flex justify-between border-b border-[--border-primary] pb-2">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] uppercase font-bold text-[--text-secondary] tracking-wider">Monthly Savings</span>
+                        <span className={`text-xl font-semibold ${stats.savings >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(stats.savings)}</span>
                       </div>
-                    );
-                  })}
-                  {filteredHistory.length === 0 && <p className="text-center text-[--text-tertiary] text-sm py-8">No transactions yet</p>}
+                    </div>
+                    <div className="flex justify-between border-b border-[--border-primary] pb-2">
+                      <div className="flex flex-col w-full">
+                        <span className="text-[10px] uppercase font-bold text-[--text-secondary] tracking-wider">Top Category</span>
+                        <span className="text-xl font-semibold text-[--text-primary] mt-1">{categories[stats.topCatKey]?.label || 'None'}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between border-b border-[--border-primary] pb-2">
+                      <div className="flex flex-col w-full">
+                        <span className="text-[10px] uppercase font-bold text-[--text-secondary] tracking-wider">Highest Expense</span>
+                        <span className="text-xl font-semibold text-[--text-primary] mt-1">{formatCurrency(stats.highestExp.amount)}</span>
+                        <span className="text-xs text-[--text-tertiary]">{stats.highestExp.title}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex flex-col w-full">
+                        <span className="text-[10px] uppercase font-bold text-[--text-secondary] tracking-wider">Avg. Daily Spend</span>
+                        <span className="text-xl font-semibold text-[--text-primary] mt-1">
+                          {formatCurrency(new Date().getDate() > 0 ? stats.totalExp / new Date().getDate() : 0)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Weekly Summary */}
+                <div className="glass-card p-6">
+                  <h2 className="text-lg font-semibold text-[--text-primary] mb-4">This Week's Summary</h2>
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="text-[10px] uppercase font-bold text-[--text-secondary] tracking-wider">TOTAL SPENT (Mon-Sun)</h3>
+                      <p className="text-2xl font-semibold text-[--text-primary] mt-1">{formatCurrency(stats.weeklyTotal)}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-[10px] uppercase font-bold text-[--text-secondary] tracking-wider">TOP CATEGORY (This Week)</h3>
+                      <p className="text-lg font-semibold text-[--text-primary] mt-1">{stats.weeklyTotal > 0 ? (categories[stats.weeklyTopCatKey]?.label || '--') : '--'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Manage Categories Button */}
+                <button onClick={() => openCatModal()} className="w-full glass-card p-4 flex items-center justify-center gap-2 hover:bg-[--bg-tertiary] transition-colors group">
+                  <span className="font-medium text-[--text-primary] group-hover:text-[--accent-primary]">Manage Categories</span>
+                </button>
+
               </div>
             </div>
+
+            {/* Bottom Section: Full Width History */}
+            <div className="mt-8">
+              <div className="flex flex-col sm:flex-row justify-between items-end sm:items-center mb-4 gap-4">
+                <div className="flex items-baseline gap-4">
+                  <h2 className="text-2xl font-bold text-[--text-primary]">History</h2>
+                  <div className="flex bg-[--bg-tertiary] rounded-lg p-1">
+                    <button onClick={() => setHistoryType('all')} className={`px-3 py-1 text-xs rounded-md transition-colors ${historyType === 'all' ? 'bg-[--bg-secondary] text-[--text-primary] shadow-sm' : 'text-[--text-tertiary]'}`}>All</button>
+                    <button onClick={() => setHistoryType('expenses')} className={`px-3 py-1 text-xs rounded-md transition-colors ${historyType === 'expenses' ? 'bg-[--bg-secondary] text-[--text-primary] shadow-sm' : 'text-[--text-tertiary]'}`}>Expenses</button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[--border-primary] overflow-hidden">
+                {groupedHistory.slice(0, 5).map((group) => ( // Showing top 5 days for brevity
+                  <div key={group.date.toISOString()} className="bg-[--bg-secondary] border-b border-[--border-primary] last:border-0">
+                    <div className="bg-[--bg-tertiary]/30 px-4 py-2 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-[--text-secondary] text-sm">{group.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                        <span className="text-xs text-[--text-tertiary] opacity-60">{group.date.toLocaleDateString('en-US', { weekday: 'long' })}</span>
+                      </div>
+                      <span className="text-xs font-mono text-[--text-secondary]">{formatCurrency(group.total)}</span>
+                    </div>
+                    <div>
+                      {group.items.map((item: any) => {
+                        const isExpense = 'category' in item;
+                        const cat = isExpense ? (categories[item.category] || DEFAULT_CATEGORIES.other) : null;
+                        return (
+                          <div key={item.id} className="p-3 flex justify-between items-center hover:bg-[--bg-tertiary] transition-colors cursor-pointer group" onClick={() => { if (isExpense) openEditExpense(item); else openEditIncome(item); }}>
+                            <div className="flex items-center gap-3">
+                              <div className="text-[--text-secondary] opacity-50 group-hover:opacity-100 transition-opacity">
+                                {isExpense ? <div className="w-5 h-5">{renderSafeIcon(cat?.icon)}</div> : <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" /></svg>}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-[--text-primary]">{item.title}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className={`text-sm font-semibold ${isExpense ? 'text-[--text-primary]' : 'text-green-400'}`}>
+                                {formatCurrency(item.amount)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
 
 
@@ -946,9 +1163,15 @@ function App() {
                 <span className="text-[--text-primary]">Manage Categories</span>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[--text-tertiary]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </button>
-              <button onClick={handleLogout} className="w-full p-4 flex justify-between items-center hover:bg-[--bg-tertiary] text-red-400">
+              <button onClick={handleLogout} className="w-full p-4 flex justify-between items-center hover:bg-[--bg-tertiary] text-[--text-primary]">
                 <span>Sign Out</span>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+              </button>
+
+              {/* Danger Zone */}
+              <button onClick={handleWipeData} className="w-full p-4 flex justify-between items-center hover:bg-red-500/10 text-red-500 border-t border-[--border-primary]">
+                <span>Delete All Data</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </button>
             </div>
           </div>
@@ -964,7 +1187,7 @@ function App() {
     <div className="min-h-screen font-sans text-[--text-secondary] relative flex flex-col">
       {/* Sticky Header */}
       <header className="sticky top-0 z-40 bg-[--bg-primary]/90 backdrop-blur-md px-6 pt-safe pb-4 border-b border-[--border-primary] flex justify-between items-center transition-all duration-300">
-        <div>
+        <div onClick={() => setActiveTab('home')} className="cursor-pointer group">
           <h1 className="text-xl font-bold bg-gradient-to-r from-[--accent-primary] to-emerald-400 bg-clip-text text-transparent">Expenso</h1>
           {user && (
             <div className="flex items-center gap-1 mt-0.5">
@@ -1002,9 +1225,44 @@ function App() {
           ))}
         </div>
 
-        <button onClick={openAddExpense} className="w-10 h-10 rounded-full bg-[--accent-primary] flex items-center justify-center text-[--accent-primary-text] shadow-lg shadow-[--accent-primary-subtle-bg] hover:scale-105 transition-transform active:scale-95" aria-label="Add Transaction">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Theme Toggle */}
+          <button onClick={handleThemeToggle} className="p-2 rounded-full hover:bg-[--bg-tertiary] transition-colors text-[--text-secondary]" title="Toggle Theme">
+            {theme === 'dark' ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+            )}
+          </button>
+
+          {/* Settings Shortcut */}
+          <button onClick={() => setActiveTab('settings')} className={`p-2 rounded-full hover:bg-[--bg-tertiary] transition-colors ${activeTab === 'settings' ? 'text-[--accent-primary]' : 'text-[--text-secondary]'}`} title="Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </button>
+
+          {/* Logout */}
+          <button onClick={handleLogout} className="p-2 rounded-full hover:bg-[--bg-tertiary] transition-colors text-[--text-secondary] hover:text-red-400" title="Logout">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+          </button>
+
+          {/* New Category */}
+          <button onClick={() => openCatModal()} className="p-2 rounded-full hover:bg-[--bg-tertiary] transition-colors text-[--text-secondary]" title="Add Category">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+          </button>
+
+          {/* Calculator */}
+          <button onClick={() => setIsCalcOpen(true)} className="p-2 rounded-full hover:bg-[--bg-tertiary] transition-colors text-[--text-secondary]" title="Calculator">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+          </button>
+
+          {/* Divider */}
+          <div className="w-px h-6 bg-[--border-primary] mx-1"></div>
+
+          {/* Add Button */}
+          <button onClick={openAddExpense} className="w-10 h-10 rounded-full bg-[--accent-primary] flex items-center justify-center text-[--accent-primary-text] shadow-lg shadow-[--accent-primary-subtle-bg] hover:scale-105 transition-transform active:scale-95" aria-label="Add Transaction">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -1042,6 +1300,7 @@ function App() {
 
       {renderModal()}
       {renderCatModal()}
+      <CalculatorModal isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} />
     </div>
   );
 }
